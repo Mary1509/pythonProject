@@ -1,6 +1,12 @@
 import glob
 import os
 import re
+import ast
+
+
+# Specify the directory and pattern (e.g., "*.txt" for text files)
+directory_path = './pandas/pandas/core/sparse'
+file_pattern = '**/*.py'
 
 
 def read_all_files_from_directory(directory, pattern="*"):
@@ -12,10 +18,6 @@ def read_all_files_from_directory(directory, pattern="*"):
         elif os.path.isdir(file_path):
             read_all_files_from_directory(file_path, pattern)
     return all_files
-
-# Specify the directory and pattern (e.g., "*.txt" for text files)
-directory_path = './pandas/pandas/core/methods'
-file_pattern = '**/*.py'
 
 # Read all files from the directory matching the pattern
 files = read_all_files_from_directory(directory_path, file_pattern)
@@ -36,11 +38,13 @@ global CLOC
 CLOC = 0
 
 
+
 def calculate_stats(filepath):
     global LOC
     global empty_lines
     global SLOC
     global CLOC
+    global LSI
     with open(filepath, 'r') as file:
         lines = file.readlines()
         line_count = len(lines)
@@ -53,12 +57,22 @@ def calculate_stats(filepath):
         with open(filepath, 'r') as file:
             content = file.read()
             # Regular expression to match comments
-            comment_pattern = r'#.*|(\'\'\'[\s\S]*?\'\'\'|\"\"\"[\s\S]*?\"\"\")'
-            comments = re.findall(comment_pattern, content)
-            CLOC += len(comments)
+            comment_pattern_inline = re.compile(r'#.*')
+            comments_inline = re.findall(comment_pattern_inline, content)
+            comment_pattern_block = re.compile(r'(\'\'\'[\s\S]*?\'\'\'|\"\"\"[\s\S]*?\"\"\")')
+            comments_block = re.findall(comment_pattern_block, content)
 
+            CLOC += len(comments_inline) + len(comments_block)
+
+            comments_oneline = []
+            comment_pattern_oneline = re.compile(r'^\s*#.*$')
+            for line in lines:
+                if comment_pattern_oneline.match(line):
+                    comments_oneline.append(line.strip())
+
+            comments_lines = comments_oneline + comments_block
             comment_line_numbers = set()
-            for comment in comments:
+            for comment in comments_lines:
                 # Find the line number of each comment
                 start_line = content.count('\n', 0, content.find(comment)) + 1
                 end_line = start_line + comment.count('\n')
@@ -70,6 +84,15 @@ def calculate_stats(filepath):
                 1 for i in range(1, total_lines + 1) if i not in comment_line_numbers and i not in blank_line_numbers)
             SLOC += non_comment_count
 
+            tree = ast.parse(content)
+
+            logical_lines = len([node for node in ast.walk(tree) if isinstance(node, (ast.stmt))])
+            LSI += logical_lines
+
+
+
+
+
 
 
 # Press the green button in the gutter to run the script.
@@ -79,7 +102,9 @@ if __name__ == '__main__':
     print("LOC: %i" % LOC)
     print("Empty lines: %i" % empty_lines)
     print("SLOC: %i" % SLOC)
+    print("LSI: %i" % LSI)
     print("CLOC: %i" % CLOC)
+    print("Commentary level: %s" % round(CLOC/SLOC, 4))
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
