@@ -5,7 +5,7 @@ import ast
 
 
 # Specify the directory and pattern (e.g., "*.txt" for text files)
-directory_path = './pandas/pandas/core/sparse'
+directory_path = './test/test1'
 file_pattern = '**/*.py'
 
 
@@ -61,8 +61,12 @@ def calculate_stats(filepath):
             comments_inline = re.findall(comment_pattern_inline, content)
             comment_pattern_block = re.compile(r'(\'\'\'[\s\S]*?\'\'\'|\"\"\"[\s\S]*?\"\"\")')
             comments_block = re.findall(comment_pattern_block, content)
+            lines_in_blocks = 0
+            for block in comments_block:
+                lines_in_blocks += block.count('\n') + 1
 
-            CLOC += len(comments_inline) + len(comments_block)
+
+            CLOC += len(comments_inline) + lines_in_blocks
 
             comments_oneline = []
             comment_pattern_oneline = re.compile(r'^\s*#.*$')
